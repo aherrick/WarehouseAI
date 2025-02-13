@@ -18,7 +18,15 @@ var promptExecutionSettings = new PromptExecutionSettings()
 };
 
 var chatService = kernel.GetRequiredService<IChatCompletionService>();
-var chatHistory = new ChatHistory();
+
+var systemPrompt =
+    @"You are a warehouse AI assistant.
+                     You are ONLY allowed to invoke the provided functions.
+                     NEVER respond with free text.
+                     If a request does not match a function, reply with:
+                     'I can only assist with warehouse operations. Please ask a valid request.'";
+
+var chatHistory = new ChatHistory(systemPrompt);
 
 /* Examples:
         Assign a robot to move boxes to Aisle 5
