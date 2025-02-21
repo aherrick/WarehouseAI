@@ -1,8 +1,6 @@
 # Warehouse AI Assistant
 
-![Build](https://img.shields.io/badge/build-passing-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![GitHub Workflow Status](https://github.com/your-username/your-repo/actions/workflows/your-workflow.yml/badge.svg)
+![dotnet](https://github.com/aherrick/WarehouseAI/actions/workflows/dotnet.yml/badge.svg)
 
 This project is a **Warehouse AI Assistant** using **Microsoft Semantic Kernel** and **Azure OpenAI**.
 
