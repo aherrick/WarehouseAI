@@ -1,11 +1,21 @@
 ﻿using System.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using WarehouseAI.Plugins;
 
+// Load user secrets
+var config = new ConfigurationBuilder()
+    .AddUserSecrets<Program>() // Ensure the correct type is used in UserSecrets
+    .Build();
+
 var kernel = Kernel
     .CreateBuilder()
-    .AddAzureOpenAIChatCompletion(deploymentName: "", endpoint: "", apiKey: "")
+    .AddAzureOpenAIChatCompletion(
+        deploymentName: config["AzureOpenAI:DeploymentName"],
+        endpoint: config["AzureOpenAI:Endpoint"],
+        apiKey: config["AzureOpenAI:ApiKey"]
+    )
     .Build();
 
 kernel.Plugins.AddFromType<ShippingAgentPlugin>();
