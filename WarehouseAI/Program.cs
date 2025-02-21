@@ -68,5 +68,5 @@ while (true)
 
     chatHistory.AddAssistantMessage(sb.ToString());
 
-    Console.WriteLine();
+    Console.Write("\n\n"); // Ensures two blank lines at the end
 }
