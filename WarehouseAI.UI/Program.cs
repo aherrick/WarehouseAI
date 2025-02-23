@@ -1,10 +1,12 @@
-﻿using WarehouseAI.Core;
+﻿using Microsoft.AspNetCore.Components.Server;
+using WarehouseAI.Core;
 using WarehouseAI.UI.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services.Configure<CircuitOptions>(options => options.DetailedErrors = true);
 
 var config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())

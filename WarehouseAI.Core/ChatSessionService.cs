@@ -68,22 +68,29 @@ public class ChatSessionService(IConfiguration config)
             kernel
         );
 
-        // Check if the last message is of type "Tool" and get plugin details
-        string pluginDetails = "";
-        var lastToolMessage = chatHistory.LastOrDefault();
-
-        if (lastToolMessage != null && lastToolMessage.Role == AuthorRole.Tool)
+        // Find the index of the most recent user message
+        int lastUserMessageIndex = -1;
+        for (int i = chatHistory.Count - 1; i >= 0; i--)
         {
-            var functionResultContent = lastToolMessage
-                .Items.OfType<FunctionResultContent>()
-                .Select(x => $"({x.PluginName}: {x.FunctionName})")
-                .ToList();
-
-            if (functionResultContent.Count != 0)
+            if (chatHistory[i].Role == AuthorRole.User)
             {
-                pluginDetails = "\n\n" + string.Join(" ", functionResultContent);
+                lastUserMessageIndex = i;
+                break;
             }
         }
+
+        // Extract only tool messages that appear AFTER the last user message
+        var toolMessages = chatHistory
+            .Skip(lastUserMessageIndex + 1) // Start from the message after the user's last input
+            .Where(msg => msg.Role == AuthorRole.Tool)
+            .SelectMany(toolMsg =>
+                toolMsg
+                    .Items.OfType<FunctionResultContent>()
+                    .Select(x => $"({x.PluginName}: {x.FunctionName})")
+            )
+            .ToList();
+
+        var pluginDetails = toolMessages.Count > 0 ? "\n\n" + string.Join("\n", toolMessages) : "";
 
         var assistantMessage = result.Content + pluginDetails;
         chatHistory.AddMessage(result.Role, result.Content);
@@ -94,7 +101,7 @@ public class ChatSessionService(IConfiguration config)
 
     public List<Guid> GetAllSessionIds()
     {
-        return _sessions.Keys.ToList();
+        return [.. _sessions.Keys];
     }
 
     public IEnumerable<(string User, string Assistant, DateTime Timestamp)> GetChatHistoryById(
@@ -105,6 +112,11 @@ public class ChatSessionService(IConfiguration config)
         {
             return session.Messages;
         }
-        return Enumerable.Empty<(string User, string Assistant, DateTime Timestamp)>();
+        return [];
+    }
+
+    public bool DeleteSession(Guid sessionId)
+    {
+        return _sessions.TryRemove(sessionId, out _);
     }
 }

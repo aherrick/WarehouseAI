@@ -16,6 +16,26 @@
 <body>
     <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
     <script src="_framework/blazor.web.js"></script>
+
+    <script>
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            function scrollToBottom() {
+                var element = document.getElementById('chatHistory');
+                if (element) {
+                    setTimeout(() => {
+                        element.scrollTop = element.scrollHeight;
+                    }, 100); // Adjust the delay as necessary
+                }
+            }
+
+            // Call the function to scroll to the bottom on page load
+            scrollToBottom();
+
+            // Expose the function to be callable from Blazor
+            window.scrollToBottom = scrollToBottom;
+        });
+    </script>
 </body>
 
 </html>
