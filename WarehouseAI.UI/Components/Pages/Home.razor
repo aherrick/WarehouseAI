@@ -5,25 +5,6 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
 
-<style>
-    .sticky-query {
-        position: -webkit-sticky; /* For Safari */
-        position: sticky;
-        top: 0;
-        z-index: 1000; /* Adjust as necessary */
-        border-bottom: 1px solid #ddd; /* Add bottom border */
-        background-color: white; /* Add background color to ensure border visibility */
-    }
-    .chat-history {
-        max-height: 75vh; /* Adjust as necessary */
-        overflow-y: auto;
-        overflow-x: hidden; /* Prevent overflow to the right */
-    }
-    pre {
-        white-space: pre-wrap; /* Allow line breaks in long messages */
-        word-wrap: break-word; /* Break long words to fit within the container */
-    }
-</style>
 
 <div class="container mt-3">
     <div class="sticky-query p-3">
@@ -33,52 +14,52 @@
                 <option value="">Select a session...</option>
                 @foreach (var sessionId in SessionIds)
                 {
-                                <option value="@sessionId">@sessionId</option>
+                    <option value="@sessionId">@sessionId</option>
                 }
             </select>
             @if (!string.IsNullOrEmpty(SelectedSessionId))
             {
-                            <button class="btn btn-danger" @onclick="ConfirmAndDeleteSession">Delete Session</button>
+                <button class="btn btn-danger" @onclick="ConfirmAndDeleteSession">Delete Session</button>
             }
         </div>
 
         @if (!string.IsNullOrEmpty(SelectedSessionId))
         {
-                        <div class="input-group mt-2">
-                            <input class="form-control" @bind="UserInput" @bind:event="oninput" @onkeyup="HandleKeyPress" placeholder="Enter your query..." />
-                            <button class="btn btn-primary" @onclick="SendMessage" disabled="@IsLoading">
-                                Send
-                            </button>
-                            @if (IsLoading)
-                            {
-                                            <div class="spinner-border text-primary ms-2" role="status" style="width: 1.5rem; height: 1.5rem;">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                            }
-                        </div>
+            <div class="input-group mt-2">
+                <input class="form-control" @bind="UserInput" @bind:event="oninput" @onkeyup="HandleKeyPress" placeholder="Enter your query..." />
+                <button class="btn btn-primary" @onclick="SendMessage" disabled="@IsLoading">
+                    Send
+                </button>
+                @if (IsLoading)
+                {
+                    <div class="spinner-border text-primary ms-2" role="status" style="width: 1.5rem; height: 1.5rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                }
+            </div>
         }
     </div>
 
     <div class="chat-history mt-3" id="chatHistory">
         @if (!string.IsNullOrEmpty(SelectedSessionId))
         {
-                        @foreach (var entry in ChatHistory)
-                        {
-                                        <div class="mb-3">
-                                            <div class="text-end me-3">
-                                                <div class="badge bg-secondary">User</div>
-                                                <pre class="alert alert-primary d-inline-block p-2">@entry.User</pre>
-                                                <br />
-                                                <small class="d-block text-end">@entry.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</small>
-                                            </div>
-                                            <div>
-                                                <div class="badge bg-success">Assistant</div>
-                                                <pre class="alert alert-light border d-inline-block p-2">@entry.Assistant</pre>
-                                                <br />
-                                                <small class="d-block">@entry.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</small>
-                                            </div>
-                                        </div>
-                        }
+            @foreach (var entry in ChatHistory)
+            {
+                <div class="mb-3">
+                    <div class="text-end me-3">
+                        <div class="badge bg-secondary">User</div>
+                        <pre class="alert alert-primary d-inline-block p-2">@entry.User</pre>
+                        <br />
+                        <small class="d-block text-end">@entry.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</small>
+                    </div>
+                    <div>
+                        <div class="badge bg-success">Assistant</div>
+                        <pre class="alert alert-light border d-inline-block p-2">@entry.Assistant</pre>
+                        <br />
+                        <small class="d-block">@entry.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</small>
+                    </div>
+                </div>
+            }
         }
     </div>
 </div>
@@ -131,8 +112,12 @@
             {
                 NavigationManager.NavigateTo($"/{sessionId}", true);
             }
-            ScrollToBottom();
         }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        ScrollToBottom();
     }
 
     private async Task SendMessage()
