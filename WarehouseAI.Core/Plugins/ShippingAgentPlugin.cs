@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using Microsoft.SemanticKernel;
 
-namespace WarehouseAI.Plugins;
+namespace WarehouseAI.Core.Plugins;
 
 public class ShippingAgentPlugin
 {

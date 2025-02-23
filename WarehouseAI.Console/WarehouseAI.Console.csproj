@@ -9,7 +9,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.2" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.38.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WarehouseAI.Core\WarehouseAI.Core.csproj" />
   </ItemGroup>
 
 </Project>

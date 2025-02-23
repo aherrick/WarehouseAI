@@ -1,7 +1,8 @@
 ﻿using System.ComponentModel;
+using System.Text;
 using Microsoft.SemanticKernel;
 
-namespace WarehouseAI.Plugins;
+namespace WarehouseAI.Core.Plugins;
 
 public class InventoryAgentPlugin
 {
@@ -44,5 +45,25 @@ public class InventoryAgentPlugin
 
         inventory[item] = Math.Max(0, value + amount);
         return $"✅ Updated stock: {item} now has {inventory[item]} units.";
+    }
+
+    [
+        KernelFunction("CheckAllStock"),
+        Description("Checks the current stock levels for all items in the inventory.")
+    ]
+    public string CheckAllStock()
+    {
+        if (inventory.Count == 0)
+        {
+            return "📦 Inventory is empty.";
+        }
+
+        var stockReport = new StringBuilder("📦 Current stock levels:\n");
+        foreach (var item in inventory)
+        {
+            stockReport.AppendLine($"- {item.Key}: {item.Value} units");
+        }
+
+        return stockReport.ToString();
     }
 }
