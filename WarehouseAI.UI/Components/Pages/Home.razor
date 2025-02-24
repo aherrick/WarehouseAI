@@ -5,7 +5,6 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
 
-
 <div class="container mt-3">
     <div class="sticky-query p-3">
         <div class="d-flex">
@@ -65,42 +64,46 @@
 </div>
 
 @code {
-    [Parameter]
-    public string sessionId { get; set; }
+    [Parameter] public string sessionId { get; set; }
 
     private List<Guid> SessionIds = new();
     private string _selectedSessionId;
     private bool IsLoading = false;
-
-    private string SelectedSessionId
-    {
-        get => _selectedSessionId;
-        set
-        {
-            if (_selectedSessionId != value)
-            {
-                _selectedSessionId = value;
-                LoadSessionById(_selectedSessionId);
-            }
-        }
-    }
-
     private string UserInput = "";
     private List<(string User, string Assistant, DateTime Timestamp)> ChatHistory = new();
 
+    // ---------------------- LIFECYCLE METHODS ----------------------
+
     protected override void OnInitialized()
     {
+        NavigationManager.LocationChanged += HandleNavigationChange;
         LoadSessionIds();
+
         if (!string.IsNullOrEmpty(sessionId))
         {
             SelectedSessionId = sessionId;
         }
+        else
+        {
+            ResetSession(); // Reset session if navigated to home `/`
+        }
     }
 
-    private void LoadSessionIds()
+    protected override void OnAfterRender(bool firstRender) => ScrollToBottom();
+
+    public void Dispose() => NavigationManager.LocationChanged -= HandleNavigationChange;
+
+    private void HandleNavigationChange(object sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
-        SessionIds = ChatSessionService.GetAllSessionIds();
+        if (e.Location == NavigationManager.BaseUri) // When navigating to "/"
+        {
+            ResetSession();
+        }
     }
+
+    // ---------------------- SESSION MANAGEMENT ----------------------
+
+    private void LoadSessionIds() => SessionIds = ChatSessionService.GetAllSessionIds();
 
     private void LoadSessionById(string sessionId)
     {
@@ -115,10 +118,52 @@
         }
     }
 
-    protected override void OnAfterRender(bool firstRender)
+    private void CreateNewSession()
     {
-        ScrollToBottom();
+        var sessionId = ChatSessionService.StartNewSession();
+        SessionIds.Add(sessionId);
+        SelectedSessionId = sessionId.ToString();
+        LoadSessionById(SelectedSessionId);
     }
+
+    private async Task ConfirmAndDeleteSession()
+    {
+        if (!string.IsNullOrEmpty(SelectedSessionId) && Guid.TryParse(SelectedSessionId, out var guid))
+        {
+            bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this session?");
+            if (confirmed)
+            {
+                ChatSessionService.DeleteSession(guid);
+                SessionIds.Remove(guid);
+                NavigationManager.NavigateTo("/"); // This will trigger the reset via LocationChanged
+            }
+        }
+    }
+
+    private void ResetSession()
+    {
+        SelectedSessionId = "";
+        ChatHistory.Clear();
+        UserInput = "";
+        StateHasChanged(); // Ensures UI updates immediately
+    }
+
+    // ---------------------- GETTER/SETTER FOR SELECTED SESSION ----------------------
+
+    private string SelectedSessionId
+    {
+        get => _selectedSessionId;
+        set
+        {
+            if (_selectedSessionId != value)
+            {
+                _selectedSessionId = value;
+                LoadSessionById(_selectedSessionId);
+            }
+        }
+    }
+
+    // ---------------------- CHAT MANAGEMENT ----------------------
 
     private async Task SendMessage()
     {
@@ -134,14 +179,6 @@
         ScrollToBottom();
     }
 
-    private void CreateNewSession()
-    {
-        var sessionId = ChatSessionService.StartNewSession();
-        SessionIds.Add(sessionId);
-        SelectedSessionId = sessionId.ToString();
-        LoadSessionById(SelectedSessionId);
-    }
-
     private async Task HandleKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !IsLoading)
@@ -150,24 +187,7 @@
         }
     }
 
-    private async Task ConfirmAndDeleteSession()
-    {
-        if (!string.IsNullOrEmpty(SelectedSessionId) && Guid.TryParse(SelectedSessionId, out var guid))
-        {
-            bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this session?");
-            if (confirmed)
-            {
-                ChatSessionService.DeleteSession(guid);
-                SessionIds.Remove(guid);
-                SelectedSessionId = "";
-                ChatHistory.Clear();
-                NavigationManager.NavigateTo("/");
-            }
-        }
-    }
+    // ---------------------- UI HELPERS ----------------------
 
-    private async void ScrollToBottom()
-    {
-        await JsRuntime.InvokeVoidAsync("scrollToBottom");
-    }
+    private async void ScrollToBottom() => await JsRuntime.InvokeVoidAsync("scrollToBottom");
 }
