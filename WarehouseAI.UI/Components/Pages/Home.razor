@@ -5,6 +5,8 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
 
+@implements IDisposable
+
 <div class="container mt-3">
     <div class="sticky-query p-3">
         <div class="d-flex">
@@ -91,7 +93,10 @@
 
     protected override void OnAfterRender(bool firstRender) => ScrollToBottom();
 
-    public void Dispose() => NavigationManager.LocationChanged -= HandleNavigationChange;
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= HandleNavigationChange;
+    }
 
     private void HandleNavigationChange(object sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
@@ -102,6 +107,19 @@
     }
 
     // ---------------------- SESSION MANAGEMENT ----------------------
+
+    private string SelectedSessionId
+    {
+        get => _selectedSessionId;
+        set
+        {
+            if (_selectedSessionId != value)
+            {
+                _selectedSessionId = value;
+                LoadSessionById(_selectedSessionId);
+            }
+        }
+    }
 
     private void LoadSessionIds() => SessionIds = ChatSessionService.GetAllSessionIds();
 
@@ -148,27 +166,14 @@
         StateHasChanged(); // Ensures UI updates immediately
     }
 
-    // ---------------------- GETTER/SETTER FOR SELECTED SESSION ----------------------
-
-    private string SelectedSessionId
-    {
-        get => _selectedSessionId;
-        set
-        {
-            if (_selectedSessionId != value)
-            {
-                _selectedSessionId = value;
-                LoadSessionById(_selectedSessionId);
-            }
-        }
-    }
-
     // ---------------------- CHAT MANAGEMENT ----------------------
 
     private async Task SendMessage()
     {
         if (string.IsNullOrWhiteSpace(UserInput))
+        {
             return;
+        }
 
         IsLoading = true;
         var assistantResponse = await ChatSessionService.SendMessageAsync(Guid.Parse(SelectedSessionId), UserInput);
