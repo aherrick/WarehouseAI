@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using WarehouseAI.Core.Helpers;
 using WarehouseAI.Core.Plugins;
 using WarehouseAI.UI.Shared;
 
@@ -63,31 +64,19 @@ public class ChatSessionService(IConfiguration config)
             kernel
         );
 
-        // Find the index of the most recent user message
-        int lastUserMessageIndex = -1;
-        for (int i = chatHistory.Count - 1; i >= 0; i--)
-        {
-            if (chatHistory[i].Role == AuthorRole.User)
-            {
-                lastUserMessageIndex = i;
-                break;
-            }
-        }
-
-        // Extract only tool messages that appear AFTER the last user message
-        var toolMessages = chatHistory
-            .Skip(lastUserMessageIndex + 1) // Start from the message after the user's last input
-            .Where(msg => msg.Role == AuthorRole.Tool)
-            .SelectMany(toolMsg =>
-                toolMsg
-                    .Items.OfType<FunctionResultContent>()
-                    .Select(x => $"({x.PluginName}: {x.FunctionName})")
-            )
-            .ToList();
+        var toolsInvoked = SkHelper.GetToolsInovked(chatHistory);
 
         var assistantMessage =
             result.Content
-            + (toolMessages.Count > 0 ? "\n\n" + string.Join("\n", toolMessages) : "");
+            + (
+                toolsInvoked.Count > 0
+                    ? "\n\n"
+                        + string.Join(
+                            "\n",
+                            toolsInvoked.Select(tool => $"({tool.PluginName}: {tool.FunctionName})")
+                        )
+                    : ""
+            );
 
         chatHistory.AddAssistantMessage(result.Content);
         messages.Add(
@@ -114,6 +103,7 @@ public class ChatSessionService(IConfiguration config)
         {
             return session.Messages;
         }
+
         return [];
     }
 
