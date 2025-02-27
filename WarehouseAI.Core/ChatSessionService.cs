@@ -63,9 +63,12 @@ public class ChatSessionService(IConfiguration config)
             kernel
         );
 
-        var assistantMessage = result.Content;
+        var toolMessages = ExtractToolMessages(chatHistory);
 
-        chatHistory.AddMessage(result.Role, result.Content);
+        var assistantMessage =
+            result.Content
+            + (toolMessages.Count > 0 ? "\n\n" + string.Join("\n", toolMessages) : "");
+        chatHistory.AddAssistantMessage(result.Content);
         messages.Add(
             new ChatData
             {
@@ -77,6 +80,31 @@ public class ChatSessionService(IConfiguration config)
         );
 
         return assistantMessage;
+    }
+
+    private static List<string> ExtractToolMessages(ChatHistory chatHistory)
+    {
+        int lastUserMessageIndex = -1;
+        for (int i = chatHistory.Count - 1; i >= 0; i--)
+        {
+            if (chatHistory[i].Role == AuthorRole.User)
+            {
+                lastUserMessageIndex = i;
+                break;
+            }
+        }
+
+        return
+        [
+            .. chatHistory
+                .Skip(lastUserMessageIndex + 1) // Start from the message after the user's last input
+                .Where(msg => msg.Role == AuthorRole.Tool)
+                .SelectMany(toolMsg =>
+                    toolMsg
+                        .Items.OfType<FunctionResultContent>()
+                        .Select(x => $"({x.PluginName}: {x.FunctionName})")
+                ),
+        ];
     }
 
     public List<string> GetAllSessionIds()
