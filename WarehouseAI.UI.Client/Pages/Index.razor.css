@@ -1,0 +1,19 @@
+﻿.sticky-query {
+    position: -webkit-sticky; /* For Safari */
+    position: sticky;
+    top: 0;
+    z-index: 1000; /* Adjust as necessary */
+    border-bottom: 1px solid #ddd; /* Add bottom border */
+    background-color: white; /* Add background color to ensure border visibility */
+}
+
+.chat-history {
+    max-height: 80vh; /* Adjust as necessary */
+    overflow-y: auto;
+    overflow-x: hidden; /* Prevent overflow to the right */
+}
+
+pre {
+    white-space: pre-wrap; /* Allow line breaks in long messages */
+    word-wrap: break-word; /* Break long words to fit within the container */
+}

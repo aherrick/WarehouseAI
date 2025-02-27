@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>b8e2bc7c-0988-4d49-ae6d-91a45bef614d</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WarehouseAI.Core\WarehouseAI.Core.csproj" />
+    <ProjectReference Include="..\WarehouseAI.UI.Client\WarehouseAI.UI.Client.csproj" />
+    <ProjectReference Include="..\WarehouseAI.UI.Shared\WarehouseAI.UI.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
