@@ -15,9 +15,6 @@ public class ChatSessionService(IConfiguration config)
         (Kernel Kernel, ChatHistory ChatHistory, List<ChatData> Messages)
     > _sessions = new();
 
-    private const string AI_UNSUPPORTED_RESPONSE =
-        "I can only assist with warehouse operations. Please ask a valid request.";
-
     public string StartNewSession()
     {
         var newSessionId = Guid.NewGuid().ToString();
@@ -39,7 +36,7 @@ public class ChatSessionService(IConfiguration config)
             You are ONLY allowed to invoke the provided functions.
             NEVER respond with free text.
             If a request does not match a function, reply with:
-            {AI_UNSUPPORTED_RESPONSE}";
+            'I can only assist with warehouse operations.' Give suggestions on what functions can be invoked grouped by function.";
 
         _sessions[newSessionId] = (kernel, new ChatHistory(systemPrompt), new List<ChatData>());
         return newSessionId;
