@@ -8,20 +8,20 @@
     <div class="sticky-query p-3">
         <div class="d-flex">
             <button class="btn btn-primary me-2" @onclick="CreateNewSession">New Session</button>
-            <select class="form-select w-auto me-2" @bind="SelectedSessionId">
-                <option value="">Select a session...</option>
-                @foreach (var sessionId in SessionIds)
+            <select class="form-select w-auto me-2" @onchange="HandleSessionChange">
+                <option value="" selected="@(string.IsNullOrEmpty(sessionId))">Select a session...</option>
+                @foreach (var id in SessionIds)
                 {
-                    <option value="@sessionId">@sessionId</option>
+                    <option value="@id" selected="@(id == sessionId)">@id</option>
                 }
             </select>
-            @if (!string.IsNullOrEmpty(SelectedSessionId))
+            @if (!string.IsNullOrEmpty(sessionId))
             {
                 <button class="btn btn-danger" @onclick="ConfirmAndDeleteSession">Delete Session</button>
             }
         </div>
 
-        @if (!string.IsNullOrEmpty(SelectedSessionId))
+        @if (!string.IsNullOrEmpty(sessionId))
         {
             <div class="input-group mt-2">
                 <input class="form-control" @bind="UserInput" @bind:event="oninput" @onkeyup="HandleKeyPress" placeholder="Enter your query..." />
@@ -39,7 +39,7 @@
     </div>
 
     <div class="chat-history mt-3" id="chatHistory">
-        @if (!string.IsNullOrEmpty(SelectedSessionId))
+        @if (!string.IsNullOrEmpty(sessionId))
         {
             @foreach (var entry in ChatHistory)
             {
@@ -64,14 +64,12 @@
             }
         }
     </div>
-
 </div>
 
 @code {
     [Parameter] public string sessionId { get; set; }
 
     private List<string> SessionIds = new();
-    private string _selectedSessionId;
     private bool IsLoading = false;
     private string UserInput = "";
     private List<ChatData> ChatHistory = new();
@@ -81,30 +79,31 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadSessionIdsAsync();
-
         if (!string.IsNullOrEmpty(sessionId))
         {
-            await SetSelectedSessionIdAsync(sessionId);
+            await LoadSessionByIdAsync(sessionId);
         }
     }
 
     protected override void OnAfterRender(bool firstRender) => ScrollToBottom();
 
-
     // ---------------------- SESSION MANAGEMENT ----------------------
 
-    private string SelectedSessionId
+    private async Task HandleSessionChange(ChangeEventArgs e)
     {
-        get => _selectedSessionId;
-        set => SetSelectedSessionIdAsync(value).ConfigureAwait(false); // Fire and forget
-    }
-
-    private async Task SetSelectedSessionIdAsync(string sessionId)
-    {
-        if (_selectedSessionId != sessionId)
+        var newSessionId = e.Value?.ToString();
+        if (newSessionId != sessionId)
         {
-            _selectedSessionId = sessionId;
-            await LoadSessionByIdAsync(_selectedSessionId);
+            if (!string.IsNullOrEmpty(newSessionId))
+            {
+                await LoadSessionByIdAsync(newSessionId); // Load new session
+            }
+            else
+            {
+                ChatHistory.Clear(); // Clear when switching to "Select a session..."
+            }
+
+            NavigationManager.NavigateTo(string.IsNullOrEmpty(newSessionId) ? "/" : $"/{newSessionId}");
         }
     }
 
@@ -115,11 +114,9 @@
 
     private async Task LoadSessionByIdAsync(string sessionId)
     {
-        ChatHistory = (await CustomHttpClient.Get<ChatHistoryResponse>($"/sessions/{sessionId}/history")).History;
-
-        if (sessionId != this.sessionId)
+        if (!string.IsNullOrEmpty(sessionId))
         {
-            NavigationManager.NavigateTo($"/{sessionId}");
+            ChatHistory = (await CustomHttpClient.Get<ChatHistoryResponse>($"/sessions/{sessionId}/history")).History;
         }
     }
 
@@ -127,25 +124,22 @@
     {
         var sessionIdResponse = await CustomHttpClient.Post<SessionIdResponse>("/sessions");
         SessionIds.Add(sessionIdResponse.SessionId);
-        await SetSelectedSessionIdAsync(sessionIdResponse.SessionId.ToString());
+        await LoadSessionByIdAsync(sessionIdResponse.SessionId); // Load new session
+        NavigationManager.NavigateTo($"/{sessionIdResponse.SessionId}");
     }
 
     private async Task ConfirmAndDeleteSession()
     {
-        if (!string.IsNullOrEmpty(SelectedSessionId))
+        if (!string.IsNullOrEmpty(sessionId))
         {
             bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this session?");
             if (confirmed)
             {
-                await CustomHttpClient.Post<object>($"/sessions/{SelectedSessionId}");
-                SessionIds.Remove(SelectedSessionId);
-
-                // clear session
-                _selectedSessionId = null;
+                await CustomHttpClient.Post<object>($"/sessions/{sessionId}");
+                SessionIds.Remove(sessionId);
                 ChatHistory.Clear();
                 UserInput = "";
-
-                NavigationManager.NavigateTo("/"); // Navigate to the root page without reloading
+                NavigationManager.NavigateTo("/");
             }
         }
     }
@@ -154,14 +148,13 @@
 
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(UserInput))
+        if (string.IsNullOrWhiteSpace(UserInput) || string.IsNullOrEmpty(sessionId))
         {
             return;
         }
 
         IsLoading = true;
 
-        // Add user message immediately with null assistant response
         var chatEntry = new ChatData
         {
             User = UserInput,
@@ -169,24 +162,20 @@
         };
         ChatHistory.Add(chatEntry);
 
-        // Clear input and force UI refresh
         var tempUserInput = UserInput;
         UserInput = "";
-        StateHasChanged(); // Force UI to update
+        StateHasChanged();
 
-        // Get response from API
-        var result = await CustomHttpClient.Post<MessageResponse>($"/sessions/{SelectedSessionId}/messages", new MessageRequest(tempUserInput));
+        var result = await CustomHttpClient.Post<MessageResponse>($"/sessions/{sessionId}/messages", new MessageRequest(tempUserInput));
 
-        // Update assistant response and timestamp
         chatEntry.Assistant = result.AssistantMessage;
         chatEntry.AssistantTimestamp = DateTime.UtcNow;
 
         IsLoading = false;
-        StateHasChanged(); // Ensure UI updates again with assistant's response
+        StateHasChanged();
 
         ScrollToBottom();
     }
-
 
     private async Task HandleKeyPress(KeyboardEventArgs e)
     {
