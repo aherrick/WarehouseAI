@@ -61,7 +61,7 @@ public class ChatSessionService(IConfiguration config)
             kernel
         );
 
-        var toolsInvoked = SkHelper.GetToolsInovked(chatHistory);
+        var toolsInvoked = SkHelper.GetToolsInvoked(chatHistory);
 
         var assistantMessage =
             result.Content
