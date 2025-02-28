@@ -1,4 +1,4 @@
-﻿@page "/{sessionId?}"
+﻿@page "/{SessionId?}"
 
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
@@ -8,20 +8,22 @@
     <div class="sticky-query p-3">
         <div class="d-flex">
             <button class="btn btn-primary me-2" @onclick="CreateNewSession">New Session</button>
+
             <select class="form-select w-auto me-2" @onchange="HandleSessionChange">
-                <option value="" selected="@(string.IsNullOrEmpty(sessionId))">Select a session...</option>
+                <option value="" selected="@(string.IsNullOrEmpty(SessionId))">Select Session</option>
                 @foreach (var id in SessionIds)
                 {
-                    <option value="@id" selected="@(id == sessionId)">@id</option>
+                    <option value="@id" selected="@(id == SessionId)">@id</option>
                 }
             </select>
-            @if (!string.IsNullOrEmpty(sessionId))
+
+            @if (!string.IsNullOrEmpty(SessionId))
             {
                 <button class="btn btn-danger" @onclick="ConfirmAndDeleteSession">Delete Session</button>
             }
         </div>
 
-        @if (!string.IsNullOrEmpty(sessionId))
+        @if (!string.IsNullOrEmpty(SessionId))
         {
             <div class="input-group mt-2">
                 <input class="form-control" @bind="UserInput" @bind:event="oninput" @onkeyup="HandleKeyPress" placeholder="Enter your query..." />
@@ -39,7 +41,7 @@
     </div>
 
     <div class="chat-history mt-3" id="chatHistory">
-        @if (!string.IsNullOrEmpty(sessionId))
+        @if (!string.IsNullOrEmpty(SessionId))
         {
             @foreach (var entry in ChatHistory)
             {
@@ -67,88 +69,87 @@
 </div>
 
 @code {
-    [Parameter] public string sessionId { get; set; }
+    [Parameter] public string SessionId { get; set; }
 
     private List<string> SessionIds = new();
     private bool IsLoading = false;
     private string UserInput = "";
     private List<ChatData> ChatHistory = new();
 
-    // ---------------------- LIFECYCLE METHODS ----------------------
-
+    // GROUP 1: Lifecycle and Initialization Methods
+    // These methods handle component initialization and rendering lifecycle events
     protected override async Task OnInitializedAsync()
     {
-        await LoadSessionIdsAsync();
-        if (!string.IsNullOrEmpty(sessionId))
+        await LoadSessionIds();
+        if (!string.IsNullOrEmpty(SessionId))
         {
-            await LoadSessionByIdAsync(sessionId);
+            await LoadSessionById(SessionId);
         }
     }
 
     protected override void OnAfterRender(bool firstRender) => ScrollToBottom();
 
-    // ---------------------- SESSION MANAGEMENT ----------------------
-
+    // GROUP 2: Session Management Methods
+    // These methods handle session creation, deletion, loading, and navigation
     private async Task HandleSessionChange(ChangeEventArgs e)
     {
-        var newSessionId = e.Value?.ToString();
-        if (newSessionId != sessionId)
+        var newSessionId = e.Value.ToString();
+        if (string.IsNullOrEmpty(newSessionId))
         {
-            if (!string.IsNullOrEmpty(newSessionId))
-            {
-                await LoadSessionByIdAsync(newSessionId); // Load new session
-            }
-            else
-            {
-                ChatHistory.Clear(); // Clear when switching to "Select a session..."
-            }
-
-            NavigationManager.NavigateTo(string.IsNullOrEmpty(newSessionId) ? "/" : $"/{newSessionId}");
+            ResetSessionState();
+        }
+        else
+        {
+            await LoadSessionById(newSessionId);
+            NavigationManager.NavigateTo($"/{newSessionId}");
         }
     }
 
-    private async Task LoadSessionIdsAsync()
+    private async Task LoadSessionIds()
     {
         SessionIds = (await CustomHttpClient.Get<SessionIdsResponse>("/sessions")).SessionIds;
     }
 
-    private async Task LoadSessionByIdAsync(string sessionId)
+    private async Task LoadSessionById(string sessionId)
     {
-        if (!string.IsNullOrEmpty(sessionId))
-        {
-            ChatHistory = (await CustomHttpClient.Get<ChatHistoryResponse>($"/sessions/{sessionId}/history")).History;
-        }
+        ChatHistory = (await CustomHttpClient.Get<ChatHistoryResponse>($"/sessions/{sessionId}/history")).History;
     }
 
     private async Task CreateNewSession()
     {
         var sessionIdResponse = await CustomHttpClient.Post<SessionIdResponse>("/sessions");
         SessionIds.Add(sessionIdResponse.SessionId);
-        await LoadSessionByIdAsync(sessionIdResponse.SessionId); // Load new session
+        await LoadSessionById(sessionIdResponse.SessionId);
         NavigationManager.NavigateTo($"/{sessionIdResponse.SessionId}");
     }
 
     private async Task ConfirmAndDeleteSession()
     {
-        if (!string.IsNullOrEmpty(sessionId))
+        if (!string.IsNullOrEmpty(SessionId))
         {
             bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this session?");
             if (confirmed)
             {
-                await CustomHttpClient.Post<object>($"/sessions/{sessionId}");
-                SessionIds.Remove(sessionId);
-                ChatHistory.Clear();
-                UserInput = "";
-                NavigationManager.NavigateTo("/");
+                await CustomHttpClient.Post<object>($"/sessions/{SessionId}");
+                SessionIds.Remove(SessionId);
+                ResetSessionState();
             }
         }
     }
 
-    // ---------------------- CHAT MANAGEMENT ----------------------
+    private void ResetSessionState()
+    {
+        SessionId = null;
+        ChatHistory.Clear();
+        UserInput = "";
+        NavigationManager.NavigateTo("/");
+    }
 
+    // GROUP 3: Message Handling Methods
+    // These methods manage chat input, message sending, and keyboard events
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(UserInput) || string.IsNullOrEmpty(sessionId))
+        if (string.IsNullOrWhiteSpace(UserInput) || string.IsNullOrEmpty(SessionId))
         {
             return;
         }
@@ -166,7 +167,7 @@
         UserInput = "";
         StateHasChanged();
 
-        var result = await CustomHttpClient.Post<MessageResponse>($"/sessions/{sessionId}/messages", new MessageRequest(tempUserInput));
+        var result = await CustomHttpClient.Post<MessageResponse>($"/sessions/{SessionId}/messages", new MessageRequest(tempUserInput));
 
         chatEntry.Assistant = result.AssistantMessage;
         chatEntry.AssistantTimestamp = DateTime.UtcNow;
@@ -185,7 +186,7 @@
         }
     }
 
-    // ---------------------- UI HELPERS ----------------------
-
+    // GROUP 4: UI Helper Methods
+    // These methods assist with UI functionality like scrolling
     private async void ScrollToBottom() => await JsRuntime.InvokeVoidAsync("scrollToBottom");
 }
