@@ -36,7 +36,7 @@ public class ChatSessionService(IConfiguration config)
             You are ONLY allowed to invoke the provided functions.
             NEVER respond with free text.
             If a request does not match a function, reply with:
-            'I can only assist with warehouse operations.' Give list of operations the user can do.";
+            'I can only assist with warehouse operations.' Give a simple list of operations the user can perform.";
 
         _sessions[newSessionId] = (kernel, new ChatHistory(systemPrompt), new List<ChatData>());
         return newSessionId;
