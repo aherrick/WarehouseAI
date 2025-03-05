@@ -26,4 +26,4 @@ jobs:
         AzureOpenAI__DeploymentName: ${{ secrets.AZUREOPENAI_DEPLOYMENTNAME }}
         AzureOpenAI__Endpoint: ${{ secrets.AZUREOPENAI_ENDPOINT }}
         AzureOpenAI__ApiKey: ${{ secrets.AZUREOPENAI_APIKEY }}
-      run: dotnet test WarehouseAI.Tests/WarehouseAI.Tests.csproj --no-build --logger trx --results-directory TestResults
+      run: dotnet test WarehouseAI.Tests/WarehouseAI.Tests.csproj --no-build --logger "console;verbosity=normal"
