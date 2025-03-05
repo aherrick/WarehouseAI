@@ -6,6 +6,7 @@ namespace WarehouseAI.Tests;
 public class ChatSessionServiceTests
 {
     private readonly ChatSessionService ChatService;
+    private const string WarehouseOnlyMessage = "I can only assist with warehouse operations";
 
     public ChatSessionServiceTests()
     {
@@ -20,7 +21,7 @@ public class ChatSessionServiceTests
     [Fact]
     public void StartNewSession_ReturnsValidSessionId()
     {
-        string sessionId = ChatService.StartNewSession();
+        var sessionId = ChatService.StartNewSession();
         Assert.False(string.IsNullOrEmpty(sessionId));
         Assert.True(Guid.TryParse(sessionId, out _), "Session ID should be a valid GUID");
     }
@@ -28,29 +29,21 @@ public class ChatSessionServiceTests
     [Fact]
     public async Task SendMessageAsync_ValidWarehouseRequest_ReturnsPluginResponse()
     {
-        string sessionId = ChatService.StartNewSession();
-        string validMessage = "Check inventory for itemA";
-        string response = await ChatService.SendMessageAsync(sessionId, validMessage);
+        var sessionId = ChatService.StartNewSession();
+        var validMessage = "Check inventory for itemA";
+        var response = await ChatService.SendMessageAsync(sessionId, validMessage);
 
         Assert.False(string.IsNullOrEmpty(response));
-        Assert.DoesNotContain(
-            "I can only assist with warehouse operations",
-            response,
-            StringComparison.OrdinalIgnoreCase
-        );
+        Assert.DoesNotContain(WarehouseOnlyMessage, response, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task SendMessageAsync_InvalidRequest_ReturnsRestrictedMessage()
     {
-        string sessionId = ChatService.StartNewSession();
-        string invalidMessage = "Who's Michael Jordan?";
-        string response = await ChatService.SendMessageAsync(sessionId, invalidMessage);
+        var sessionId = ChatService.StartNewSession();
+        var invalidMessage = "Who's Michael Jordan?";
+        var response = await ChatService.SendMessageAsync(sessionId, invalidMessage);
 
-        Assert.Contains(
-            "I can only assist with warehouse operations",
-            response,
-            StringComparison.OrdinalIgnoreCase
-        );
+        Assert.Contains(WarehouseOnlyMessage, response, StringComparison.OrdinalIgnoreCase);
     }
 }
