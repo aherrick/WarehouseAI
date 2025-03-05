@@ -22,4 +22,8 @@ jobs:
       run: dotnet build 
 
     - name: Test
-      run: dotnet test warehouseai.tests --no-build --logger trx --results-directory TestResults
+      env:
+        AzureOpenAI__DeploymentName: ${{ secrets.AZUREOPENAI_DEPLOYMENTNAME }}
+        AzureOpenAI__Endpoint: ${{ secrets.AZUREOPENAI_ENDPOINT }}
+        AzureOpenAI__ApiKey: ${{ secrets.AZUREOPENAI_APIKEY }}
+      run: dotnet test WarehouseAI.Tests/WarehouseAI.Tests.csproj --no-build --logger trx --results-directory TestResults
