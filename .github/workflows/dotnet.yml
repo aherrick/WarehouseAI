@@ -13,12 +13,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Setup .NET SDK
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.x'  
 
-    # Build the project
-    - name: Build project
+    - name: Build 
       run: dotnet build 
+
+    - name: Test
+      run: dotnet test warehouseai.tests --no-build --logger trx --results-directory TestResults
